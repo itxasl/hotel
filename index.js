@@ -32,7 +32,38 @@ app.post('/clientes', function (req, res) {
 
 
 
-app.put('/reservas', function(req,res){
+app.put('/reservas', function (req, res) {
+    let dni = req.query.dni;
+    let habitacion = req.query.habitacion;
+
+
+    db.collection('clientes').find({ dni: dni }).toArray(function (err, datos) {
+        if (err !== null) {
+            console.log(err);
+            return;
+        }
+        if (datos.length === 0) {
+            res.send('cliente no registrado');
+    }
+
+    /////////////churro////////////////
+    db.collection('habitaciones').find({ $and: [{ nombre: habitacion }, { ocupado: false }] }).toArray(function(err,datos)){
+        if (err !== null) {
+            console.log(err);
+            return;
+        }
+        
+        res.send('habitación ocupada, elija otra por favor')
+    } else {
+        db.collection('habitaciones').update({ nombre: habitacion }, { $set: { ocupado: true } });
+        db.collection('reservas').insertOne({ dni: dni, habitacion: habitacion });
+        res.send('habitación reservada');
+    }
+
+})
+    
+})
+app.put('/checkOut', function (req, res) {
     let dni = req.query.dni;
     let habitacion = req.query.habitacion;
 
@@ -42,50 +73,27 @@ app.put('/reservas', function(req,res){
             return;
         }
 
-   if ( db.collection('clientes').find({dni:dni}) === null){
-       res.send('cliente no registrado');
-   }else if (db.collection('habitaciones').find({$and:[{nombre:habitacion},{ocupado:false}]}) === null) {
-       res.send('habitación ocupada, elija otra por favor')
-   }else{
-       db.collection('habitaciones').update({nombre:habitacion},{$set:{ocupado:true}});
-       db.collection('reservas').insertOne({dni:dni,habitacion:habitacion});
-       res.send('habitación reservada');
-   }
-   
-        })
-    
-})
-app.put('/checkOut', function(req,res){
-    let dni = req.query.dni;
-    let habitacion = req.query.habitacion;
-
-    db.collection('clientes').find().toArray(function (err, datos) {
-        if (err !== null) {
-            console.log(err);
-            return;
+        if (db.collection('clientes').find({ dni: dni }) === null) {
+            res.send('cliente no registrado');
+        } else if (db.collection('habitaciones').find({ $and: [{ nombre: habitacion }, { ocupado: true }] }) === null) {
+            res.send('Se ha equivocado de habitación')
+        } else {
+            db.collection('habitaciones').update({ nombre: habitacion }, { $set: { ocupado: false } });
+            res.send('Hasta pronto');
         }
 
-   if ( db.collection('clientes').find({dni:dni}) === null){
-       res.send('cliente no registrado');
-   }else if (db.collection('habitaciones').find({$and:[{nombre:habitacion},{ocupado:true}]}) === null) {
-       res.send('Se ha equivocado de habitación')
-   }else{
-       db.collection('habitaciones').update({nombre:habitacion},{$set:{ocupado:false}});
-       res.send('Hasta pronto');
-   }
-   
-        })
-    
+    })
+
 })
 
-app.put('/:dni',function(req,res){
+app.put('/:dni', function (req, res) {
 
     let dni = req.params.dni;
-    let  nombreNuevo= req.query.nombre;
+    let nombreNuevo = req.query.nombre;
     let apellidoNuevo = req.query.apellido;
 
-    db.collection('clientes').updateOne({dni: dni},{$set:{nombre:nombreNuevo},});
-    db.collection('clientes').updateOne({dni:dni},{$set:{apellido:apellidoNuevo},});
+    db.collection('clientes').updateOne({ dni: dni }, { $set: { nombre: nombreNuevo }, });
+    db.collection('clientes').updateOne({ dni: dni }, { $set: { apellido: apellidoNuevo }, });
 
     res.send("Datos del cliente modificados");
 
@@ -104,7 +112,7 @@ app.get('/habitaciones', function (req, res) {
         for (let i = 0; i < datos.length; i++) {
             texto += `<h1>${datos[i].nombre}</h1>`;
             texto += `<p>${datos[i].ocupado}</p >`;
-        
+
         }
         res.send(texto);
     });
