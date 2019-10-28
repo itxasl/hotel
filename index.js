@@ -44,25 +44,27 @@ app.put('/reservas', function (req, res) {
         }
         if (datos.length === 0) {
             res.send('cliente no registrado');
-    }
+        }
+    });
 
-    /////////////churro////////////////
-    db.collection('habitaciones').find({ $and: [{ nombre: habitacion }, { ocupado: false }] }).toArray(function(err,datos)){
+    db.collection('habitaciones').find({ $and: [{ nombre: habitacion }, { ocupado: false }] }).toArray(function (err, datos) {
         if (err !== null) {
             console.log(err);
             return;
         }
-        
-        res.send('habitación ocupada, elija otra por favor')
-    } else {
-        db.collection('habitaciones').update({ nombre: habitacion }, { $set: { ocupado: true } });
-        db.collection('reservas').insertOne({ dni: dni, habitacion: habitacion });
-        res.send('habitación reservada');
-    }
+        if (datos.length === 0) {
+            res.send('habitación ocupada, elija otra por favor')
+        }
+        else {
+            db.collection('habitaciones').update({ nombre: habitacion }, { $set: { ocupado: true } });
+            db.collection('reservas').insertOne({ dni: dni, habitacion: habitacion });
+            res.send('habitación reservada');
+        }
+
+    })
 
 })
-    
-})
+
 app.put('/checkOut', function (req, res) {
     let dni = req.query.dni;
     let habitacion = req.query.habitacion;
